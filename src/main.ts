@@ -101,7 +101,11 @@ function main(): void {
 			game.update();
 			acc -= FRAME_MS;
 		}
-		renderFrame();
+		try {
+			renderFrame();
+		} catch (err) {
+			console.error(err);
+		}
 		requestAnimationFrame(loop);
 	}
 	requestAnimationFrame(loop);
