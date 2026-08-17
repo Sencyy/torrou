@@ -1,0 +1,17 @@
+{
+  "name": "2hugame",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A Touhou 15-inspired danmaku shooter for the web",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 8080",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
