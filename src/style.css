@@ -10,12 +10,11 @@ body {
 #game {
   width: 100vw;
   height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
 }
 
 #game canvas {
-  image-rendering: pixelated;
-  box-shadow: 0 0 40px rgba(120, 80, 200, 0.35);
+  display: block;
+  width: 100vw;
+  height: 100vh;
 }

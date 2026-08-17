@@ -1,4 +1,5 @@
 import { AudioSys } from './audio';
+import type { BackdropTheme } from './backdrop';
 import { Boss, type BossHooks, type SpellCard } from './boss';
 import { makeEnemyPool, makePlayerPool } from './bullet';
 import { VIEW_H, VIEW_W, PLAYER, SCORING, DIFFICULTIES } from './config';
@@ -17,6 +18,7 @@ import {
 	drawPause,
 	drawTitle,
 } from './menus';
+import { MusicSys, type TrackName } from './music';
 import { type EmitCtx } from './patterns';
 import { bombFlash, explode, ParticlePool } from './particles';
 import { Player } from './player';
@@ -33,7 +35,9 @@ export class Game {
 
 	private input: Input;
 	private audio: AudioSys;
+	private music: MusicSys;
 	private scoring = new Scoring();
+	private bossMusicStarted = false;
 
 	private charIndex = 0;
 	private diffIndex = 1;
@@ -55,9 +59,25 @@ export class Game {
 	private spellBanner: { name: string; timer: number; color: string } | null = null;
 	private perfectTimer = 0;
 
-	constructor(input: Input, audio: AudioSys) {
+	constructor(input: Input, audio: AudioSys, music: MusicSys) {
 		this.input = input;
 		this.audio = audio;
+		this.music = music;
+		this.music.play('title');
+	}
+
+	get backdropTheme(): BackdropTheme {
+		switch (this.state) {
+			case 'title':
+			case 'charSelect':
+			case 'diffSelect':
+				return 'title';
+			case 'gameOver':
+			case 'win':
+				return 'end';
+			default:
+				return this.stage?.def.theme ?? 'sea';
+		}
 	}
 
 	private makeCtx(): EmitCtx {
@@ -109,6 +129,8 @@ export class Game {
 		this.player.iFrames = 60;
 		this.fairy.reset(this.player.x, this.player.y);
 		this.spellBanner = null;
+		this.bossMusicStarted = false;
+		this.music.play(`stage${i + 1}` as TrackName);
 	}
 
 	private nextStage(): void {
@@ -118,6 +140,7 @@ export class Game {
 		} else {
 			this.scoring.finish();
 			this.state = 'win';
+			this.music.play('win');
 		}
 	}
 
@@ -125,12 +148,17 @@ export class Game {
 		this.scoring.finish();
 		this.state = 'gameOver';
 		this.audio.play('gameover');
+		this.music.play('gameover');
 	}
 
 	// ---------- update ----------
 	update(): void {
 		this.frame++;
-		if (this.input.wasPressed(KEYS.mute[0])) this.audio.setMuted(!this.audio.muted);
+		if (this.input.wasPressed(KEYS.mute[0])) {
+			const m = !this.audio.muted;
+			this.audio.setMuted(m);
+			this.music.setMuted(m);
+		}
 
 		switch (this.state) {
 			case 'title':
@@ -152,7 +180,10 @@ export class Game {
 					this.audio.play('select');
 					this.state = 'diffSelect';
 				}
-				if (this.input.wasPressed(...KEYS.back)) this.state = 'title';
+				if (this.input.wasPressed(...KEYS.back)) {
+					this.state = 'title';
+					this.music.play('title');
+				}
 				break;
 			case 'diffSelect':
 				if (this.input.wasPressed(...KEYS.up)) {
@@ -181,6 +212,7 @@ export class Game {
 					this.state = 'playing';
 				} else if (this.input.wasPressed('KeyB')) {
 					this.state = 'title';
+					this.music.play('title');
 				}
 				break;
 			case 'stageClear':
@@ -191,7 +223,10 @@ export class Game {
 				break;
 			case 'gameOver':
 			case 'win':
-				if (this.input.wasPressed(...KEYS.confirm)) this.state = 'title';
+				if (this.input.wasPressed(...KEYS.confirm)) {
+					this.state = 'title';
+					this.music.play('title');
+				}
 				break;
 		}
 		this.input.endFrame();
@@ -215,6 +250,13 @@ export class Game {
 
 		// Stage (waves + boss)
 		this.stage?.update(ctx, this.enemyPool, this.bossHooks);
+
+		// Boss theme
+		const boss = this.stage?.boss;
+		if (boss && boss.active && !this.bossMusicStarted) {
+			this.bossMusicStarted = true;
+			this.music.play('boss');
+		}
 
 		// Enemies
 		this.enemyPool.forEachActive((e) => e.update(ctx));

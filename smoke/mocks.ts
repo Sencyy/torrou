@@ -5,8 +5,18 @@ const listeners: Record<string, ((e: { code: string; preventDefault?: () => void
 	addEventListener: (t: string, fn: (e: { code: string; preventDefault?: () => void }) => void) => {
 		(listeners[t] ||= []).push(fn);
 	},
+	removeEventListener: (t: string, fn: (e: { code: string; preventDefault?: () => void }) => void) => {
+		listeners[t] = (listeners[t] || []).filter((f) => f !== fn);
+	},
 	innerWidth: 640,
 	innerHeight: 960,
+	devicePixelRatio: 1,
+	setInterval: (fn: () => void, ms: number) => {
+		const id = setInterval(fn, ms);
+		(id as unknown as { unref?: () => void }).unref?.();
+		return id as unknown as number;
+	},
+	clearInterval: (id: number) => clearInterval(id as unknown as ReturnType<typeof setInterval>),
 };
 
 (globalThis as Record<string, unknown>).document = {

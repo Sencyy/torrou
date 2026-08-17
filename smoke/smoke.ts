@@ -3,13 +3,16 @@ import { press, release } from './mocks';
 import { Game } from '../src/game';
 import { Input } from '../src/input';
 import { AudioSys } from '../src/audio';
+import { MusicSys } from '../src/music';
 
 const input = new Input();
 input.attach();
 const audio = new AudioSys();
-const game = new Game(input, audio) as unknown as Record<string, any> & Game;
+const music = new MusicSys();
+const game = new Game(input, audio, music) as unknown as Record<string, any> & Game;
 
 console.log('initial state:', game.state);
+console.log('music playing:', music.playing);
 
 // title -> charSelect -> diffSelect -> playing (release one-shot keys between steps)
 press('Enter');
@@ -68,4 +71,5 @@ console.log('max enemy bullets on screen:', maxBullets);
 console.log('max concurrent enemies:', maxEnemies);
 console.log('saw boss:', sawBoss, 'saw spell card:', sawSpell);
 console.log('player lives:', game.player.lives, 'bombs:', game.player.bombs, 'power:', game.player.power);
+console.log('music playing at end:', music.playing);
 console.log('SMOKE OK');
