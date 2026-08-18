@@ -255,7 +255,7 @@ export class Game {
 		const boss = this.stage?.boss;
 		if (boss && boss.active && !this.bossMusicStarted) {
 			this.bossMusicStarted = true;
-			this.music.play('boss');
+			this.music.play(this.stageIndex === 0 ? 'boss1' : 'boss');
 		}
 
 		// Enemies

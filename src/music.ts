@@ -1,9 +1,11 @@
 // PC-98-era style chiptune/FM music engine (WebAudio).
 // Title is a transcription of the Touhou 15 menu theme "The Space Shrine Maiden Appears"
 // (Karl Zuñiga), melody one octave down; stage1 is a transcription of the TH15 stage 1 theme
-// "That Unforgettable Greenery of Connection"; the remaining tracks are original FM compositions.
+// "That Unforgettable Greenery of Connection"; boss1 is a transcription of the TH15 boss 1
+// theme "The Rabbit Has Landed"; the remaining tracks are original FM compositions.
 
 import { BEATS as S1_BEATS, TEMPO as S1_TEMPO, arp as s1Arp, bass as s1Bass, lead as s1Lead, pad as s1Pad } from './data/stage1';
+import { BEATS as B1_BEATS, TEMPO as B1_TEMPO, arp as b1Arp, bass as b1Bass, lead as b1Lead, pad as b1Pad } from './data/boss1';
 
 export type TrackName =
 	| 'title'
@@ -11,6 +13,7 @@ export type TrackName =
 	| 'stage2'
 	| 'stage3'
 	| 'boss'
+	| 'boss1'
 	| 'gameover'
 	| 'win';
 
@@ -355,11 +358,42 @@ function stage1Track(): Track {
   return { tempo: S1_TEMPO, beats: S1_BEATS, events: ev };
 }
 
-// ---------- the seven original tracks ----------
+// ---------- boss 1: Touhou 15 boss 1 theme "The Rabbit Has Landed" ----------
+// Faithful transcription of the full 272-beat song. Raw MIDI numbers from src/data/boss1.ts
+// (extracted from th15b1.mid), so values stay correct regardless of the SEMI table bug.
+function boss1Track(): Track {
+  const ev: Ev[] = [];
+  const push = (beat: number, len: number, midi: number, inst: InstName, vol: number): void => { ev.push({ beat, len, midi, inst, vol }); };
+
+  for (const [beat, len, m] of b1Lead) push(beat, len, m, 'lead', 0.22);
+  for (const [beat, len, m] of b1Arp) push(beat, len, m, 'arp', 0.12);
+  for (const [beat, len, m] of b1Bass) push(beat, len, m, 'bass', 0.28);
+  for (const [beat, len, m] of b1Pad) push(beat, len, m, 'pad', 0.09);
+
+  // drums: light -> full -> break -> full -> light -> full (the MIDI has no drum channel, so this is synthesized)
+  for (let bar = 0; bar < B1_BEATS / 4; bar++) {
+    const b = bar * 4;
+    const full = (b >= 16 && b < 96) || (b >= 112 && b < 224) || b >= 256;
+    const trans = b >= 96 && b < 112;
+    const kick = full ? [0, 1.5, 2, 3.5] : [0, 2];
+    for (const k of kick) push(b + k, 0.1, 0, 'kick', 0.5);
+    if (full) { push(b + 1, 0.15, 0, 'snare', 0.35); push(b + 3, 0.15, 0, 'snare', 0.35); }
+    else if (trans) push(b + 2, 0.15, 0, 'snare', 0.35);
+    const hats = full ? H16 : H8;
+    for (const h of hats) push(b + h, 0.05, 0, 'hat', 0.2);
+  }
+
+  ev.sort((a, b) => a.beat - b.beat);
+  return { tempo: B1_TEMPO, beats: B1_BEATS, events: ev };
+}
+
+// ---------- the remaining original tracks ----------
 const TRACKS: Record<TrackName, Track> = {
 	title: titleTrack(),
 
 	stage1: stage1Track(),
+
+	boss1: boss1Track(),
 
 	stage2: build({
 		tempo: 152,
