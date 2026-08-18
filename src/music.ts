@@ -1,5 +1,6 @@
 // PC-98-era style chiptune/FM music engine (WebAudio).
-// All tracks are ORIGINAL compositions in the OPN/OPNA FM style — no copyrighted melodies.
+// Title is a transcription of the Touhou 15 menu theme "The Space Shrine Maiden Appears"
+// (Karl Zuñiga), melody one octave down; the other tracks are original FM compositions.
 
 export type TrackName =
 	| 'title'
@@ -256,29 +257,76 @@ function build(o: BuildOpts): Track {
 const H8 = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5];
 const H16 = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75];
 
+// ---------- title track: Touhou 15 menu theme "The Space Shrine Maiden Appears" (Karl Zuñiga) ----------
+// Faithful transcription of the 96-beat verse, melody one octave down. Raw MIDI numbers are used
+// directly so the values stay correct regardless of the SEMI table bug elsewhere in this file.
+const TN: Record<string, number> = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
+const tm = (n: string, o: number): number => (o + 1) * 12 + TN[n];
+
+function titleTrack(): Track {
+  const ev: Ev[] = [];
+  const push = (beat: number, len: number, midi: number, inst: InstName, vol: number): void => { ev.push({ beat, len, midi, inst, vol }); };
+
+  // lead (hook): sparse 5-note 8th-note figure every 8 beats, one octave down
+  const hk = [tm('D#', 3), tm('A#', 3), tm('G#', 3), tm('C#', 4)];
+  const hkPeak = [tm('G#', 4), tm('F#', 4), tm('G#', 4), tm('F#', 4), tm('G#', 4), tm('G#', 4), tm('G#', 4), tm('G#', 4), tm('G#', 4), tm('G#', 4), tm('G#', 4), tm('G#', 4)];
+  for (let m = 0; m < 12; m++) {
+    const b = m * 8;
+    push(b, 0.5, hk[0], 'lead', 0.3);
+    push(b + 0.5, 0.5, hk[1], 'lead', 0.3);
+    push(b + 1, 0.5, hk[2], 'lead', 0.3);
+    push(b + 1.5, 0.5, hk[3], 'lead', 0.3);
+    push(b + 2, 0.5, hkPeak[m], 'lead', 0.3);
+  }
+  push(12, 0.5, tm('G#', 4), 'lead', 0.3);
+  push(14, 0.5, tm('F', 4), 'lead', 0.3);
+  push(28, 0.5, tm('F#', 4), 'lead', 0.3);
+  push(30, 0.5, tm('F', 4), 'lead', 0.3);
+
+  // arp (piano melody): 16-note 8th-note pattern from b32, alternating A/B, one octave down
+  const arpA = [51, 56, 58, 61, 58, 56, 51, 56, 58, 61, 58, 56, 51, 56, 58, 49];
+  const arpB = [51, 56, 58, 61, 58, 56, 51, 56, 58, 61, 51, 56, 54, 53, 51, 49];
+  for (let c = 0; c < 8; c++) {
+    const b = 32 + c * 8;
+    const pat = c % 2 === 0 ? arpA : arpB;
+    for (let i = 0; i < 16; i++) push(b + i * 0.5, 0.5, pat[i], 'arp', 0.13);
+  }
+
+  // pad: sustained chords following the bass root, 8-beat holds
+  const dsmaj = [tm('D#', 4), tm('F#', 4), tm('A#', 4)];
+  const asmin = [tm('A#', 4), tm('C#', 5), tm('E', 5)];
+  const padSeq = [dsmaj, asmin, dsmaj, asmin, dsmaj, dsmaj, dsmaj, dsmaj, dsmaj, dsmaj, dsmaj, dsmaj];
+  for (let m = 0; m < 12; m++) for (const note of padSeq[m]) push(m * 8, 8, note, 'pad', 0.1);
+
+  // bass: held roots + 8th-note figures in the intro, driving D#2 8ths in the main
+  const figD = [tm('D#', 2), tm('A#', 2), tm('D#', 2), tm('G#', 2), tm('F#', 2), tm('F', 2), tm('D#', 2), tm('B', 1)];
+  const figA = [tm('B', 1), tm('D#', 2), tm('B', 1), tm('D#', 2), tm('F#', 2), tm('G#', 2), tm('C#', 3), tm('G#', 2)];
+  const bassFigures: [number, number[]][] = [[4, figD], [12, figA], [20, figD], [28, figA]];
+  push(0, 4, tm('D#', 2), 'bass', 0.28);
+  push(8, 4, tm('A#', 1), 'bass', 0.28);
+  push(16, 4, tm('D#', 2), 'bass', 0.28);
+  push(24, 4, tm('A#', 1), 'bass', 0.28);
+  for (const [start, fig] of bassFigures) for (let i = 0; i < 8; i++) push(start + i * 0.5, 0.5, fig[i], 'bass', 0.28);
+  for (let b = 32; b < 96; b += 0.5) push(b, 0.5, tm('D#', 2), 'bass', 0.28);
+
+  // drums: light -> medium -> full build
+  const hats = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5];
+  for (let bar = 0; bar < 24; bar++) {
+    const b = bar * 4;
+    const kick = b < 16 ? [0, 2] : [0, 1.5, 2, 3.5];
+    for (const k of kick) push(b + k, 0.1, 0, 'kick', 0.5);
+    for (const h of hats) push(b + h, 0.05, 0, 'hat', 0.2);
+    if (b >= 16 && b < 32) push(b + 2, 0.15, 0, 'snare', 0.35);
+    if (b >= 32) { push(b + 1, 0.15, 0, 'snare', 0.35); push(b + 3, 0.15, 0, 'snare', 0.35); }
+  }
+
+  ev.sort((a, b) => a.beat - b.beat);
+  return { tempo: 150, beats: 96, events: ev };
+}
+
 // ---------- the seven original tracks ----------
 const TRACKS: Record<TrackName, Track> = {
-	title: build({
-		tempo: 84,
-		bars: 8,
-		chords: [chord('A', 3, 'min'), chord('F', 3, 'maj'), chord('C', 3, 'maj'), chord('G', 3, 'maj'),
-			chord('A', 3, 'min'), chord('F', 3, 'maj'), chord('C', 3, 'maj'), chord('G', 3, 'maj')],
-		arpPattern: 'up8',
-		arpVol: 0.1,
-		padVol: 0.12,
-		bassVol: 0.22,
-		drums: { kick: [0, 2], hat: H8 },
-		melody: mel([
-			['E', 5, 0, 2], ['D', 5, 2, 2],
-			['C', 5, 4, 2], ['A', 4, 6, 2],
-			['G', 4, 8, 2], ['E', 4, 10, 2],
-			['D', 4, 12, 1.5], ['B', 4, 13.5, 0.5], ['A', 4, 14, 2],
-			['E', 5, 16, 2], ['C', 5, 18, 2],
-			['A', 4, 20, 2], ['F', 4, 22, 2],
-			['G', 4, 24, 2], ['E', 4, 26, 2],
-			['D', 4, 28, 3], ['C', 4, 31, 1],
-		]),
-	}),
+	title: titleTrack(),
 
 	stage1: build({
 		tempo: 140,
