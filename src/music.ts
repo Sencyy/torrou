@@ -1,6 +1,9 @@
 // PC-98-era style chiptune/FM music engine (WebAudio).
 // Title is a transcription of the Touhou 15 menu theme "The Space Shrine Maiden Appears"
-// (Karl Zuñiga), melody one octave down; the other tracks are original FM compositions.
+// (Karl Zuñiga), melody one octave down; stage1 is a transcription of the TH15 stage 1 theme
+// "That Unforgettable Greenery of Connection"; the remaining tracks are original FM compositions.
+
+import { BEATS as S1_BEATS, TEMPO as S1_TEMPO, arp as s1Arp, bass as s1Bass, lead as s1Lead, pad as s1Pad } from './data/stage1';
 
 export type TrackName =
 	| 'title'
@@ -324,34 +327,39 @@ function titleTrack(): Track {
   return { tempo: 150, beats: 96, events: ev };
 }
 
+// ---------- stage 1: Touhou 15 stage 1 theme "That Unforgettable Greenery of Connection" ----------
+// Faithful transcription of the full 576-beat song. Raw MIDI numbers from src/data/stage1.ts
+// (extracted from th15s1.mid), so values stay correct regardless of the SEMI table bug.
+function stage1Track(): Track {
+  const ev: Ev[] = [];
+  const push = (beat: number, len: number, midi: number, inst: InstName, vol: number): void => { ev.push({ beat, len, midi, inst, vol }); };
+
+  for (const [beat, len, m] of s1Lead) push(beat, len, m, 'lead', 0.22);
+  for (const [beat, len, m] of s1Arp) push(beat, len, m, 'arp', 0.12);
+  for (const [beat, len, m] of s1Bass) push(beat, len, m, 'bass', 0.28);
+  for (const [beat, len, m] of s1Pad) push(beat, len, m, 'pad', 0.09);
+
+  // drums: light -> full -> light build (the MIDI has no drum channel, so this is synthesized)
+  for (let bar = 0; bar < S1_BEATS / 4; bar++) {
+    const b = bar * 4;
+    const section = b < 16 ? 'intro' : b < 224 ? 'A' : b < 304 ? 'trans' : b < 512 ? 'B' : 'outro';
+    const kick = section === 'A' || section === 'B' ? [0, 1.5, 2, 3.5] : [0, 2];
+    for (const k of kick) push(b + k, 0.1, 0, 'kick', 0.5);
+    if (section === 'A' || section === 'B') { push(b + 1, 0.15, 0, 'snare', 0.35); push(b + 3, 0.15, 0, 'snare', 0.35); }
+    else if (section === 'trans') push(b + 2, 0.15, 0, 'snare', 0.35);
+    const hats = section === 'A' || section === 'B' ? H16 : H8;
+    for (const h of hats) push(b + h, 0.05, 0, 'hat', 0.2);
+  }
+
+  ev.sort((a, b) => a.beat - b.beat);
+  return { tempo: S1_TEMPO, beats: S1_BEATS, events: ev };
+}
+
 // ---------- the seven original tracks ----------
 const TRACKS: Record<TrackName, Track> = {
 	title: titleTrack(),
 
-	stage1: build({
-		tempo: 140,
-		bars: 16,
-		chords: [chord('C', 3, 'maj'), chord('G', 3, 'maj'), chord('A', 3, 'min'), chord('F', 3, 'maj')],
-		arpPattern: 'up16',
-		arpVol: 0.15,
-		padVol: 0.09,
-		bassVol: 0.3,
-		drums: { kick: [0, 2], snare: [1, 3], hat: H8 },
-		melody: mel([
-			['E', 5, 0, 1], ['G', 5, 1, 1], ['C', 6, 2, 1], ['G', 5, 3, 1],
-			['E', 5, 4, 1], ['C', 5, 5, 1], ['G', 4, 6, 1], ['C', 5, 7, 1],
-			['A', 5, 8, 1], ['C', 6, 9, 1], ['E', 6, 10, 1], ['C', 6, 11, 1],
-			['A', 5, 12, 1], ['F', 5, 13, 1], ['C', 5, 14, 1], ['F', 5, 15, 1],
-			['E', 5, 16, 1], ['G', 5, 17, 1], ['C', 6, 18, 1], ['D', 6, 19, 1],
-			['E', 6, 20, 1], ['D', 6, 21, 1], ['C', 6, 22, 1], ['G', 5, 23, 1],
-			['A', 5, 24, 1], ['C', 6, 25, 1], ['E', 6, 26, 1], ['G', 6, 27, 1],
-			['F', 6, 28, 1], ['E', 6, 29, 1], ['C', 6, 30, 1], ['G', 5, 31, 1],
-			['G', 5, 32, 1], ['C', 6, 33, 1], ['D', 6, 34, 1], ['E', 6, 35, 1],
-			['G', 6, 36, 1], ['E', 6, 37, 1], ['C', 6, 38, 1], ['G', 5, 39, 1],
-			['A', 5, 40, 1], ['C', 6, 41, 1], ['E', 6, 42, 1], ['C', 6, 43, 1],
-			['F', 5, 44, 1], ['A', 5, 45, 1], ['C', 6, 46, 1], ['F', 6, 47, 1],
-		]),
-	}),
+	stage1: stage1Track(),
 
 	stage2: build({
 		tempo: 152,
