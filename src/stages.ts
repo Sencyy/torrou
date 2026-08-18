@@ -1,4 +1,5 @@
-import { VIEW_W } from './config';
+import { VIEW_W, FPS } from './config';
+import { BEATS as S1_BEATS, TEMPO as S1_TEMPO } from './data/stage1';
 import type { BossDef } from './boss';
 import type { Enemy, EnemyConfig, EnemyPool } from './enemy';
 import {
@@ -41,7 +42,7 @@ const fireRing8 = (ctx: EmitCtx, e: Enemy): void =>
 // ---- enemy config factories ----
 function flyer(x: number, opts: Partial<EnemyConfig> = {}): EnemyConfig {
 	return {
-		hp: 2,
+		hp: 4,
 		kind: 'flyer',
 		path: 'straight',
 		x,
@@ -56,7 +57,7 @@ function flyer(x: number, opts: Partial<EnemyConfig> = {}): EnemyConfig {
 
 function midboss(x: number, opts: Partial<EnemyConfig> = {}): EnemyConfig {
 	return {
-		hp: 60,
+		hp: 90,
 		kind: 'midboss',
 		path: 'hold',
 		x,
@@ -122,18 +123,42 @@ const seaBoss: BossDef = {
 	],
 };
 
+// Pre-boss lasts exactly one full play of the stage 1 song (576 beats @ 161.65 BPM).
 const stage1: StageDef = {
 	name: 'The Sorrowful Sea',
 	theme: 'sea',
-	length: 900,
+	length: Math.round(S1_BEATS * (60 / S1_TEMPO) * FPS),
+	// Waves are spread across the song's sections: intro 0-356, A 356-4988,
+	// transition 4988-6770, B 6770-11402, outro 11402-end (1 beat ~ 22.27 frames).
 	waves: [
-		{ at: 30, spawn: (p) => row(p, 5, 40, 55, flyer(0, { color: '#8fd0ff' })) },
-		{ at: 140, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 40, freq: 0.04, firePattern: fireFan5 })) },
-		{ at: 260, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 1.8, firePattern: fireAimed3, color: '#ffd0d0' })) },
-		{ at: 400, spawn: (p) => row(p, 5, 40, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.05, firePattern: fireRing4 })) },
-		{ at: 520, spawn: (p) => p.spawn(midboss(160)) },
-		{ at: 700, spawn: (p) => row(p, 7, 25, 40, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
-		{ at: 820, spawn: (p) => row(p, 5, 40, 55, flyer(0, { path: 'sine', amp: 45, freq: 0.05, firePattern: fireRing4 })) },
+		// intro
+		{ at: 150, spawn: (p) => row(p, 5, 40, 55, flyer(0, { color: '#8fd0ff' })) },
+		// A
+		{ at: 500, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 40, freq: 0.04, firePattern: fireFan5 })) },
+		{ at: 1100, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 1.8, firePattern: fireAimed3, color: '#ffd0d0' })) },
+		{ at: 1700, spawn: (p) => row(p, 5, 40, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 2300, spawn: (p) => row(p, 5, 40, 55, flyer(0, { color: '#8fd0ff' })) },
+		{ at: 2900, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 40, freq: 0.04, firePattern: fireFan5 })) },
+		{ at: 3500, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 1.8, firePattern: fireAimed3, color: '#ffd0d0' })) },
+		{ at: 4100, spawn: (p) => row(p, 5, 40, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 4550, spawn: (p) => p.spawn(midboss(160)) },
+		// transition
+		{ at: 5200, spawn: (p) => row(p, 5, 40, 55, flyer(0, { color: '#8fd0ff' })) },
+		{ at: 5800, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 45, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 6400, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 1.8, firePattern: fireAimed3, color: '#ffd0d0' })) },
+		// B
+		{ at: 7000, spawn: (p) => row(p, 5, 40, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 7600, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 1.8, firePattern: fireAimed3, color: '#ffd0d0' })) },
+		{ at: 8200, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 40, freq: 0.04, firePattern: fireFan5 })) },
+		{ at: 8800, spawn: (p) => row(p, 7, 25, 40, flyer(0, { speed: 2.0, firePattern: fireAimed1 })) },
+		{ at: 9400, spawn: (p) => p.spawn(midboss(160)) },
+		{ at: 10000, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 1.8, firePattern: fireAimed3, color: '#ffd0d0' })) },
+		{ at: 10600, spawn: (p) => row(p, 5, 40, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 11100, spawn: (p) => row(p, 5, 40, 55, flyer(0, { color: '#8fd0ff' })) },
+		// outro
+		{ at: 11600, spawn: (p) => row(p, 5, 40, 55, flyer(0, { path: 'sine', amp: 45, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 12100, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 1.8, firePattern: fireAimed3, color: '#ffd0d0' })) },
+		{ at: 12550, spawn: (p) => row(p, 5, 40, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.05, firePattern: fireRing4 })) },
 	],
 	boss: seaBoss,
 };
@@ -182,15 +207,24 @@ const caveBoss: BossDef = {
 const stage2: StageDef = {
 	name: 'The Cave of the Dead',
 	theme: 'cave',
-	length: 960,
+	length: 12800,
 	waves: [
-		{ at: 30, spawn: (p) => row(p, 6, 30, 45, flyer(0, { color: '#c090ff', firePattern: fireAimed3 })) },
-		{ at: 150, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'curve', speed: 1.6, firePattern: fireRing4 })) },
-		{ at: 280, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 60, freq: 0.04, firePattern: fireFan5, color: '#e0c0ff' })) },
-		{ at: 420, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
-		{ at: 560, spawn: (p) => p.spawn(midboss(160, { color: '#9050c0', firePattern: fireRing8 })) },
-		{ at: 760, spawn: (p) => row(p, 8, 20, 35, flyer(0, { speed: 2.2, firePattern: fireAimed1, color: '#d0a0ff' })) },
-		{ at: 880, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 50, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 200, spawn: (p) => row(p, 6, 30, 45, flyer(0, { color: '#c090ff', firePattern: fireAimed3 })) },
+		{ at: 900, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'curve', speed: 1.6, firePattern: fireRing4 })) },
+		{ at: 1700, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 60, freq: 0.04, firePattern: fireFan5, color: '#e0c0ff' })) },
+		{ at: 2500, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
+		{ at: 3300, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'curve', speed: 1.6, firePattern: fireRing4 })) },
+		{ at: 4100, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 60, freq: 0.04, firePattern: fireFan5, color: '#e0c0ff' })) },
+		{ at: 4900, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
+		{ at: 5700, spawn: (p) => row(p, 6, 30, 45, flyer(0, { color: '#c090ff', firePattern: fireAimed3 })) },
+		{ at: 7400, spawn: (p) => p.spawn(midboss(160, { color: '#9050c0', firePattern: fireRing8 })) },
+		{ at: 8200, spawn: (p) => row(p, 8, 20, 35, flyer(0, { speed: 2.2, firePattern: fireAimed1, color: '#d0a0ff' })) },
+		{ at: 9000, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 50, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 9800, spawn: (p) => row(p, 6, 30, 45, flyer(0, { color: '#c090ff', firePattern: fireAimed3 })) },
+		{ at: 10600, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'curve', speed: 1.6, firePattern: fireRing4 })) },
+		{ at: 11400, spawn: (p) => row(p, 8, 20, 35, flyer(0, { speed: 2.2, firePattern: fireAimed1, color: '#d0a0ff' })) },
+		{ at: 12100, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 50, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 12500, spawn: (p) => row(p, 6, 30, 45, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
 	],
 	boss: caveBoss,
 };
@@ -240,16 +274,24 @@ const moonBoss: BossDef = {
 const stage3: StageDef = {
 	name: 'The Palace of the Moon',
 	theme: 'moon',
-	length: 1020,
+	length: 12800,
 	waves: [
-		{ at: 30, spawn: (p) => row(p, 6, 30, 45, flyer(0, { color: '#fff0c0', firePattern: fireAimed3 })) },
-		{ at: 160, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.04, firePattern: fireRing4, color: '#ffe8b0' })) },
-		{ at: 300, spawn: (p) => row(p, 7, 25, 40, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
-		{ at: 440, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'curve', speed: 1.8, firePattern: fireFan5, color: '#fff0c0' })) },
-		{ at: 600, spawn: (p) => p.spawn(midboss(160, { color: '#d0c080', hp: 80 })) },
-		{ at: 640, spawn: (p) => row(p, 4, 60, 60, flyer(0, { path: 'sine', amp: 50, freq: 0.05, firePattern: fireRing4 })) },
-		{ at: 820, spawn: (p) => row(p, 9, 15, 32, flyer(0, { speed: 2.4, firePattern: fireAimed1, color: '#ffe8b0' })) },
-		{ at: 940, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 60, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 200, spawn: (p) => row(p, 6, 30, 45, flyer(0, { color: '#fff0c0', firePattern: fireAimed3 })) },
+		{ at: 900, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.04, firePattern: fireRing4, color: '#ffe8b0' })) },
+		{ at: 1700, spawn: (p) => row(p, 7, 25, 40, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
+		{ at: 2500, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'curve', speed: 1.8, firePattern: fireFan5, color: '#fff0c0' })) },
+		{ at: 3300, spawn: (p) => row(p, 6, 30, 45, flyer(0, { color: '#fff0c0', firePattern: fireAimed3 })) },
+		{ at: 4100, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.04, firePattern: fireRing4, color: '#ffe8b0' })) },
+		{ at: 4900, spawn: (p) => row(p, 7, 25, 40, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
+		{ at: 5700, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'curve', speed: 1.8, firePattern: fireFan5, color: '#fff0c0' })) },
+		{ at: 7400, spawn: (p) => p.spawn(midboss(160, { color: '#d0c080', hp: 120 })) },
+		{ at: 8200, spawn: (p) => row(p, 9, 15, 32, flyer(0, { speed: 2.4, firePattern: fireAimed1, color: '#ffe8b0' })) },
+		{ at: 9000, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 60, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 9800, spawn: (p) => row(p, 6, 30, 45, flyer(0, { color: '#fff0c0', firePattern: fireAimed3 })) },
+		{ at: 10600, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 55, freq: 0.04, firePattern: fireRing4, color: '#ffe8b0' })) },
+		{ at: 11400, spawn: (p) => row(p, 9, 15, 32, flyer(0, { speed: 2.4, firePattern: fireAimed1, color: '#ffe8b0' })) },
+		{ at: 12100, spawn: (p) => row(p, 5, 45, 55, flyer(0, { path: 'sine', amp: 60, freq: 0.05, firePattern: fireRing4 })) },
+		{ at: 12500, spawn: (p) => row(p, 7, 25, 40, flyer(0, { speed: 2.0, firePattern: fireAimed3 })) },
 	],
 	boss: moonBoss,
 };
